@@ -2,8 +2,11 @@ package helpers
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type DDMMYYYY struct {
@@ -23,4 +26,13 @@ func (d *DDMMYYYY) UnmarshalJSON(b []byte) error {
 	}
 	*d = DDMMYYYY{Time: tim}
 	return nil
+}
+
+func Mount(r *mux.Router, path string, handler http.Handler) {
+	r.PathPrefix(path).Handler(
+		http.StripPrefix(
+			strings.TrimSuffix(path, "/"),
+			handler,
+		),
+	)
 }
