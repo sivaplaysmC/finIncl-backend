@@ -29,3 +29,33 @@ func NewSmeModel(db *sql.DB, logger *log.Logger) *SmeModel {
 		Log: logger,
 	}
 }
+
+func (smes *SmeModel) CreateSme(sme *Sme) error {
+	_, err := smes.db.Query(
+		`INSERT into SME
+     (adr, GSTIN, name ,PAN, Pincode, rgdt, risk) 
+     values (? ,? ,? ,? ,? ,? ,?)`,
+		sme.Address,
+		sme.GSTIN,
+		sme.Name,
+		sme.PAN,
+		sme.PinCode,
+		sme.RegisteredDate.Format("2006-01-02"),
+		sme.Risk,
+	)
+	return err
+}
+
+func (smes *SmeModel) UpdateSmeID(sme *Sme) error {
+	_, err := smes.db.Exec(
+		`Update SME set risk=? where name like ?`,
+		sme.Risk, sme.Name,
+	)
+	return err
+}
+
+func (smes *SmeModel) GetSmeID(name string) (int, error) {
+	smeid := 0
+	err := smes.db.QueryRow("select id from sme where name like ? ", name).Scan(&smeid)
+	return smeid, err
+}
