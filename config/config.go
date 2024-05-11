@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/sivaplaysmc/finIncl-backend/internal/jwtgen"
 	"github.com/sivaplaysmc/finIncl-backend/internal/models"
 )
 
@@ -14,6 +15,8 @@ type App struct {
 
 	Users *models.UserModel
 	Smes  *models.SmeModel
+
+	Jwtgen jwtgen.JwtGenerator
 }
 
 type ContextKey string
