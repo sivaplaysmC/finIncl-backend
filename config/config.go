@@ -1,27 +1,31 @@
 package config
 
 import (
-	"database/sql"
+	"fmt"
 	"log"
 	"os"
 
+	modelID "github.com/sivaplaysmc/finIncl-backend/internal"
 	"github.com/sivaplaysmc/finIncl-backend/internal/jwtgen"
-	"github.com/sivaplaysmc/finIncl-backend/internal/models"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+
+	_ "github.com/go-sql-driver/mysql"
 )
+
+type ContextKey string
+
+const defaultDsn string = "sql:sqlatREC@tcp(0.0.0.0:3306)/gorm?parseTime=true"
 
 type App struct {
 	ErrorLog *log.Logger
 	InfoLog  *log.Logger
 
-	Users *models.UserModel
-	Smes  *models.SmeModel
+	Db *gorm.DB
 
 	Jwtgen jwtgen.JwtGenerator
 }
-
-type ContextKey string
-
-const defaultDsn string = "sql:sqlatREC@tcp(0.0.0.0:3306)/finIncl"
 
 func GetApp() (*App, error) {
 	infoLog := log.New(os.Stdout, "[INFO] ", log.LstdFlags|log.Lshortfile)
@@ -36,30 +40,26 @@ func GetApp() (*App, error) {
 		dsn = defaultDsn
 	}
 
-	db, err := getDBPool(dsn)
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	db.AutoMigrate(&modelID.Sme{}, &modelID.User{}, &modelID.Document{}, &modelID.Project{})
 	if err != nil {
 		return nil, err
+	}
+
+	jwt_secret := os.Getenv("JWT_SECRET")
+	if jwt_secret == "" {
+		return nil, fmt.Errorf("error : JWT_SECRET environment variable should be set ")
 	}
 
 	app := &App{
-		Users:    models.NewUserModel(db, infoLog),
-		Smes:     models.NewSmeModel(db, infoLog),
 		InfoLog:  infoLog,
 		ErrorLog: errrLog,
+
+		Db: db,
+
+		Jwtgen: jwtgen.NewJwtGenerator([]byte(jwt_secret)),
 	}
 	return app, nil
-}
-
-func getDBPool(dataSoruceName string) (*sql.DB, error) {
-	db, err := sql.Open("mysql", dataSoruceName)
-	if err != nil {
-		return nil, err
-	}
-
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
 }
